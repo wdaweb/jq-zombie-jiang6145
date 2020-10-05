@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      #game {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background-color: #000;
+      }
+      #player {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+      .player-bullet {
+        display: inline-block;
+        position: absolute;
+        width: 2px;
+        height: 10px;
+        background-color: red;
+      }
+      #enemy {
+        width: 30px;
+        height: 30px;
+        position: absolute;
+        left: 300px;
+        top: 200px;
+        background-color: burlywood;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game">
+      <div id="player">
+        <!-- <div class="player-bullet"></div> -->
+      </div>
+      <div id="enemy"></div>
+    </div>
+    <!-- jQuery -->
+    <script>
+      const enemy = {
+        width: parseInt($('#enemy').width()),
+        height: parseInt($('#enemy').height()),
+        left: parseInt($('#enemy').css('left')),
+        top: parseInt($('#enemy').css('top')),
+      };
+      // test
+      const body = $('body');
+      const player = $('#player');
+      const mousePosition = { x: null, y: null };
+      let shootSpeed = null;
+      let isShooting = false;
+
+      $(window).on('mousedown', function () {
+        isShooting = true;
+        shootSpeedTimer();
+        shootSpeed = setInterval(shootSpeedTimer, 400);
+      });
+      $(window).on('mouseup', function () {
+        isShooting = false;
+        clearInterval(shootSpeed);
+        shootSpeed = null;
+      });
+      $(window).on('mousemove', function (e) {
+        mousePosition.x = e.clientX;
+        mousePosition.y = e.clientY;
+      });
+
+      // 處理子彈發射時的速度
+      function shootSpeedTimer() {
+        player.append(`<div class="player-bullet"></div>`);
+        player
+          .children()
+          .last('.player-bullet')
+          .css({ left: mousePosition.x - 10, top: mousePosition.y });
+        player.append(`<div class="player-bullet"></div>`);
+        player
+          .children()
+          .last('.player-bullet')
+          .css({ left: mousePosition.x + 10, top: mousePosition.y });
+      }
+
+      // 處理子彈動畫
+      function shootingHandler() {
+        const playerBullets = $('.player-bullet');
+        playerBullets.each(function () {
+          const thisData = {
+            width: parseInt($(this).width()),
+            height: parseInt($(this).height()),
+            left: parseInt($(this).css('left')),
+            top: parseInt($(this).css('top')),
+          };
+          const playerBulletsPosition = {
+            x: thisData.left,
+            y: thisData.top - thisData.height / 2,
+          };
+          playerBulletsPosition.y = playerBulletsPosition.y - 2;
+          $(this).css({
+            left: playerBulletsPosition.x,
+            top: playerBulletsPosition.y,
+          });
+          if (thisData.top < 0) {
+            $(this).remove();
+          } else if (
+            thisData.left < enemy.left + enemy.width &&
+            thisData.left > enemy.left &&
+            thisData.top < enemy.top + enemy.height &&
+            thisData.top > enemy.top
+          ) {
+            $(this).remove();
+          }
+        });
+        requestAnimationFrame(shootingHandler);
+      }
+      requestAnimationFrame(shootingHandler);
+    </script>
+  </body>
+</html>
