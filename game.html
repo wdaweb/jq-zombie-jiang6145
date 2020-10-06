@@ -11,12 +11,14 @@
         margin: 0;
       }
       #game {
+        cursor: url('./images/玩家飛機.png') 50 50, auto;
         position: relative;
         width: 100%;
         height: 100vh;
         background-color: #000;
       }
-      #player {
+      #player-warp,
+      #enemy-warp {
         position: absolute;
         width: 100%;
         height: 100%;
@@ -24,38 +26,35 @@
       .player-bullet {
         display: inline-block;
         position: absolute;
-        width: 2px;
-        height: 10px;
-        background-color: red;
+        width: 16px;
+        height: 80px;
+        background: url('./images/玩家子彈.png') no-repeat;
+        transform: translate(-50%, -50%);
       }
-      #enemy {
+
+      .enemy {
+        display: inline-block;
+        position: absolute;
         width: 30px;
         height: 30px;
-        position: absolute;
-        left: 300px;
-        top: 200px;
-        background-color: burlywood;
+        background-color: coral;
       }
     </style>
   </head>
   <body>
     <div id="game">
-      <div id="player">
+      <div id="player-wrap">
         <!-- <div class="player-bullet"></div> -->
       </div>
-      <div id="enemy"></div>
+      <div id="enemy-wrap">
+        <!-- <div class="enemy"></div> -->
+      </div>
     </div>
     <!-- jQuery -->
     <script>
-      const enemy = {
-        width: parseInt($('#enemy').width()),
-        height: parseInt($('#enemy').height()),
-        left: parseInt($('#enemy').css('left')),
-        top: parseInt($('#enemy').css('top')),
-      };
-      // test
       const body = $('body');
-      const player = $('#player');
+      const playerWrap = $('#player-wrap');
+      const enemyWrap = $('#enemy-wrap');
       const mousePosition = { x: null, y: null };
       let shootSpeed = null;
       let isShooting = false;
@@ -75,53 +74,50 @@
         mousePosition.y = e.clientY;
       });
 
+      // 取隨機整數
+      function random(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+      }
+
       // 處理子彈發射時的速度
       function shootSpeedTimer() {
-        player.append(`<div class="player-bullet"></div>`);
-        player
-          .children()
-          .last('.player-bullet')
-          .css({ left: mousePosition.x - 10, top: mousePosition.y });
-        player.append(`<div class="player-bullet"></div>`);
-        player
-          .children()
-          .last('.player-bullet')
-          .css({ left: mousePosition.x + 10, top: mousePosition.y });
+        playerWrap.append(`<div class="player-bullet"></div>`);
+        playerWrap.children().last('.player-bullet').css({ left: mousePosition.x, top: mousePosition.y });
       }
 
       // 處理子彈動畫
       function shootingHandler() {
         const playerBullets = $('.player-bullet');
         playerBullets.each(function () {
-          const thisData = {
-            width: parseInt($(this).width()),
-            height: parseInt($(this).height()),
-            left: parseInt($(this).css('left')),
-            top: parseInt($(this).css('top')),
+          const bulletsPosition = {
+            x: parseInt($(this).css('left')),
+            y: parseInt($(this).css('top')),
           };
-          const playerBulletsPosition = {
-            x: thisData.left,
-            y: thisData.top - thisData.height / 2,
-          };
-          playerBulletsPosition.y = playerBulletsPosition.y - 2;
+          console.log(bulletsPosition.x, bulletsPosition.y);
+          bulletsPosition.y = bulletsPosition.y - 20;
           $(this).css({
-            left: playerBulletsPosition.x,
-            top: playerBulletsPosition.y,
+            left: bulletsPosition.x,
+            top: bulletsPosition.y,
           });
-          if (thisData.top < 0) {
-            $(this).remove();
-          } else if (
-            thisData.left < enemy.left + enemy.width &&
-            thisData.left > enemy.left &&
-            thisData.top < enemy.top + enemy.height &&
-            thisData.top > enemy.top
-          ) {
+          if (bulletsPosition.y < 0) {
             $(this).remove();
           }
         });
         requestAnimationFrame(shootingHandler);
       }
       requestAnimationFrame(shootingHandler);
+
+      // 創建敵人
+      function createEnemy() {
+        if (random(1, 10) > 5) {
+          enemyWrap.append(`<div class="enemy"></div>`);
+          $('.enemy').css({
+            left: random(20, 70) + '%',
+            top: random(20, 70) + '%',
+          });
+        }
+      }
+      setInterval(createEnemy, 500);
     </script>
   </body>
 </html>
