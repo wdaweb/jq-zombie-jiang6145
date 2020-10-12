@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+      /* 共用 */
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      input {
+        display: inline-block;
+        background: none;
+        outline: none;
+        cursor: pointer;
+        border: 2px #ccc solid;
+        color: #fff;
+        font-size: 30px;
+        padding: 10px 20px;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+      }
+      /* 遊戲未開始的畫面 */
+      #standby {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: url('./images/宇宙背景.jpg') no-repeat 100% 100% / cover;
+        z-index: 1;
+      }
+
+      /* 遊戲主體 */
+      #game {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+        overflow: hidden;
+      }
+
+      #player-bullet-warp,
+      #enemy-warp,
+      #enemy-bullet-wrap {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+      #player-plane {
+        display: none;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: 100px;
+        height: 120px;
+        background: url('./images/玩家飛機.png') no-repeat center / contain;
+      }
+
+      .player-bullet,
+      .enemy,
+      .enemy-bullet,
+      .supply {
+        display: inline-block;
+        position: absolute;
+        transform: translate(-50%, -50%);
+      }
+      .player-bullet {
+        width: 14px;
+        height: 70px;
+        background: url('./images/玩家子彈.png') no-repeat center / contain;
+      }
+
+      .enemy1 {
+        width: 100px;
+        height: 100px;
+        background: url('./images/敵人飛機1.png') no-repeat center / contain;
+      }
+      .enemy2 {
+        width: 60px;
+        height: 60px;
+        background: url('./images/敵人飛機2.png') no-repeat center / contain;
+      }
+      .enemy-bullet {
+        width: 15px;
+        height: 15px;
+        background: url('./images/敵人子彈.png') no-repeat center / contain;
+      }
+      .supply {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: orange;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 遊戲未開始的畫面 -->
+    <div id="standby">
+      <input id="btn-start" type="button" value="開始遊戲" />
+      <input id="btn-rule" type="button" value="遊戲規則"">
+    </div>
+
+    <!-- 遊戲主體 -->
+    <div id="game">
+      <div id="player-plane"></div>
+      <div id="player-bullet-wrap">
+        <!-- <div class="player-bullet"></div> -->
+      </div>
+      <div id="enemy-wrap">
+        <!-- <div class="enemy"></div> -->
+      </div>
+      <div id="enemy-bullet-wrap">
+        <!-- <div class="enemy-bullet"></div> -->
+      </div>
+      <div id="supply-wrap">
+        <!-- <div class="supply"></div> -->
+      </div>
+    </div>
+
+    <!-- jQuery -->
+    <script>
+      // DOM 元素
+      const standby = $('#standby');
+      const playerPlane = $('#player-plane');
+      const playerBulletWrap = $('#player-bullet-wrap');
+      const enemyWrap = $('#enemy-wrap');
+      const enemyBulletWrap = $('#enemy-bullet-wrap');
+      const supplyWrap = $('#supply-wrap');
+      const supplyType = ['hp', 'speed', 'scatter'];
+
+      // game 資料數據
+      const createRange = {
+        x0: -100,
+        x1: $(window).width() + 100,
+        y0: -100,
+        y1: $(window).height() + 100,
+      };
+      const removeRange = {
+        x0: -200,
+        x1: $(window).width() + 200,
+        y0: -200,
+        y1: $(window).height() + 200,
+      };
+      const timer = {
+        shoot: null, // 玩家子彈發射的間隔的 setInterval 計時器
+        enemy: null, // 創建敵人的 setTimeout 計時器
+        stopID: null,
+      };
+      const player = {
+        hp: 5,
+        shootSpeed: 200,
+        bulletSpeed: 1,
+        armsType: 'double', // 雙發: double , 散彈: scatter
+        scatterNum: 0,
+        w: parseInt(playerPlane.width()),
+        h: parseInt(playerPlane.height()),
+      };
+      const enemyBulletData = []; // 存取每個敵人子彈的計時器與編號定位
+      let enemyNum = 0; // 敵人編號, 要給敵人子彈綁定到相對應的敵人身上
+      let mouse = { x: 0, y: 0 };
+      let isInGame = false;
+
+      // standby 畫面按鈕
+      standby.on('click', function (e) {
+        if (e.target.id === 'btn-start') {
+          // 遊戲開始
+          isInGame = true;
+          standby.fadeOut();
+          playerPlane.fadeIn(1500);
+          timer.stopID = requestAnimationFrame(gameHandler); // 60FPS 更新畫面判斷資料
+          timer.enemy = setTimeout(createEnemy, random(500, 1000)); // 每 0.5~2 秒創建一次敵人
+        } else if (e.target.id === 'btn-rule') {
+          // 遊戲規則
+        }
+      });
+
+      // player 操作
+      $(window).on('mousemove', function (e) {
+        if (!isInGame) return;
+        // 玩家飛機移動
+        mouse = { x: e.clientX, y: e.clientY };
+        playerPlane.css({ left: mouse.x, top: mouse.y });
+      });
+      $(window).on('mousedown', function (e) {
+        if (!isInGame || e.button !== 0) return;
+        // 玩家射擊
+        createPlayerBullet();
+        timer.shoot = setInterval(createPlayerBullet, player.shootSpeed); // 每幾秒創建子彈
+      });
+      $(window).on('mouseup', function (e) {
+        if (!isInGame || e.button !== 0) return;
+        // 玩家停止射擊
+        clearInterval(timer.shoot);
+        timer.shoot = null;
+      });
+
+      // 取隨機整數
+      function random(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+      }
+
+      // 創建玩家射擊的子彈
+      function createPlayerBullet() {
+        if (player.armsType === 'double') {
+          // 雙發型態
+          for (let i = 0; i < 2; i++) {
+            const parallel = i % 2 === 0 ? mouse.x - 20 : mouse.x + 20;
+            playerBulletWrap.append('<div class="player-bullet"></div>');
+            $('.player-bullet')
+              .last()
+              .css({ left: parallel, top: mouse.y })
+              .animate({ top: 0 }, mouse.y * player.bulletSpeed, 'linear');
+          }
+        } else if (player.armsType === 'scatter') {
+          // 散彈型態
+          const scatterNum = 12;
+          for (let i = 0; i < scatterNum; i++) {
+            const offset = i < scatterNum / 2 ? (i % (scatterNum / 2)) * 100 : (i % (scatterNum / 2)) * -100;
+            playerBulletWrap.append('<div class="player-bullet"></div>');
+            $('.player-bullet')
+              .last()
+              .css({ left: mouse.x, top: mouse.y })
+              .animate({ left: mouse.x + offset, top: 0 }, mouse.y * player.bulletSpeed, 'linear');
+            // mouse.y * player.bulletSpeed => 以距離為基數計算所需時間, 否則距離越長子彈飛越快, 越短則越慢
+            player.scatterNum--;
+            if (player.scatterNum <= 0) player.armsType = 'double';
+          }
+        }
+      }
+
+      // 創建敵人
+      function createEnemy() {
+        if (Math.random() > 0.5) {
+          // 敵人 1
+          enemyWrap.append(`<div class="enemy enemy1" data-num="${enemyNum}"></div>`);
+          $('.enemy.enemy1')
+            .last()
+            .css({ left: random(createRange.x0 + 300, createRange.x1 - 300), top: createRange.y0 })
+            .animate({ top: random(100, createRange.y1 / 3) }, 2000, function () {
+              const current = $(this);
+              setTimeout(function () {
+                current.animate({ width: 0, height: 0 }, 1000);
+              }, 8000);
+            });
+          // 發射子彈
+          const enemyBullet = {
+            currentNum: enemyNum,
+            hp: 30,
+            timerBullet: setInterval(function () {
+              createEnemyBullet(enemyBullet.currentNum);
+            }, 1500),
+          };
+          enemyBulletData.push(enemyBullet);
+        } else {
+          // 敵人 2
+          enemyWrap.append(`<div class="enemy enemy2" data-num="${enemyNum}"></div>`);
+          const both = Math.random() > 0.5 ? createRange.x0 : createRange.x1;
+          $('.enemy.enemy2')
+            .last()
+            .css({ left: both, top: random(100, 400) })
+            .animate({ top: '+=100', left: both === createRange.x0 ? removeRange.x1 : removeRange.x0 }, 6000);
+
+          // 發射子彈
+          const enemyBullet = {
+            currentNum: enemyNum,
+            hp: 10,
+            timerBullet: setInterval(function () {
+              createEnemyBullet(enemyBullet.currentNum);
+            }, 300),
+          };
+          enemyBulletData.push(enemyBullet);
+        }
+
+        enemyNum++;
+        timer.enemy = setTimeout(createEnemy, random(500, 2000));
+      }
+
+      // 創建敵人子彈
+      function createEnemyBullet(currentNum) {
+        $('.enemy').each(function () {
+          // 敵人 1 的子彈
+          if ($(this).hasClass('enemy1')) {
+            // 找到相對應的敵人位置從他身上發射
+            if ($(this).attr('data-num') == currentNum) {
+              const currentEnemy = {
+                left: parseInt($(this).css('left')),
+                top: parseInt($(this).css('top')),
+              };
+              const scatterNum = 6;
+              for (let i = 0; i < scatterNum; i++) {
+                const offset = i < scatterNum / 2 ? (i % (scatterNum / 2)) * 200 : (i % (scatterNum / 2)) * -200;
+                enemyBulletWrap.append('<div class="enemy-bullet bullet1"></div>');
+                $('.enemy-bullet.bullet1')
+                  .last()
+                  .css({ left: currentEnemy.left, top: currentEnemy.top })
+                  .animate({ left: currentEnemy.left + offset, top: removeRange.y1 }, 3000, 'linear');
+              }
+            }
+          } else if ($(this).hasClass('enemy2')) {
+            // 敵人 2 的子彈
+            if ($(this).attr('data-num') == currentNum) {
+              const currentEnemy = {
+                left: parseInt($(this).css('left')),
+                top: parseInt($(this).css('top')),
+              };
+              enemyBulletWrap.append('<div class="enemy-bullet bullet2"></div>');
+              $('.enemy-bullet.bullet2')
+                .last()
+                .css({ left: currentEnemy.left, top: currentEnemy.top })
+                .animate({ left: currentEnemy.left, top: removeRange.y1 }, 2000, 'linear');
+            }
+          }
+        });
+      }
+
+      // 創建補給品
+      function createSupply(initialX, initialY) {
+        if (random(0, 10) < 9) return; // 10/1 的機率出現補給品
+        const supplyName = supplyType[random(0, 2)];
+        console.log(supplyName);
+        supplyWrap.append(`<div class="supply ${supplyName}"></div>`);
+        $('.supply')
+          .last()
+          .css({ left: initialX, top: initialY })
+          .animate({ left: random(createRange.x0, createRange.x1), top: random(createRange.y0, createRange.y1) }, 10000)
+          .animate({ width: 0, height: 0 });
+      }
+      // requestAnimationFrame 畫面處理
+      function gameHandler() {
+        // 處理玩家子彈
+        $('.player-bullet').each(function () {
+          const item = {
+            current: $(this),
+            left: parseInt($(this).css('left')),
+            top: parseInt($(this).css('top')),
+          };
+          if (item.top <= 0) $(this).remove();
+          // 擊中敵人判斷
+          $('.enemy').each(function (index) {
+            const target = {
+              current: $(this),
+              left: parseInt($(this).css('left')),
+              top: parseInt($(this).css('top')),
+              w: parseInt($(this).width()),
+              h: parseInt($(this).height()),
+            };
+            if (
+              item.left <= target.left + target.w / 2 &&
+              item.left >= target.left - target.w / 2 &&
+              item.top <= target.top + target.h / 2 &&
+              item.top >= target.top - target.h
+            ) {
+              item.current.remove();
+              enemyBulletData[index].hp--;
+              if (enemyBulletData[index].hp <= 0) {
+                clearInterval(enemyBulletData[index].timerBullet);
+                delete enemyBulletData.splice(index, 1);
+                target.current.remove();
+                createSupply(target.left, target.top);
+              }
+            }
+          });
+        });
+
+        // 處理敵人 1,2
+        $('.enemy').each(function (index) {
+          const item = {
+            left: parseInt($(this).css('left')),
+            top: parseInt($(this).css('top')),
+            w: parseInt($(this).width()),
+            h: parseInt($(this).height()),
+          };
+          if (
+            item.w <= 0 ||
+            item.left <= removeRange.x0 ||
+            item.left >= removeRange.x1 ||
+            item.top <= removeRange.y0 ||
+            item.top >= removeRange.y1
+          ) {
+            clearInterval(enemyBulletData[index].timerBullet);
+            delete enemyBulletData.splice(index, 1);
+            $(this).remove();
+          }
+        });
+
+        // 處理敵人子彈
+        $('.enemy-bullet').each(function () {
+          const item = {
+            left: parseInt($(this).css('left')),
+            top: parseInt($(this).css('top')),
+            w: parseInt($(this).width()),
+            h: parseInt($(this).height()),
+          };
+          if (
+            item.left <= removeRange.x0 ||
+            item.left >= removeRange.x1 ||
+            item.top <= removeRange.y0 ||
+            item.top >= removeRange.y1
+          ) {
+            $(this).remove();
+          } else if (
+            // 玩家被擊中判斷
+            item.left <= mouse.x + player.w / 2 &&
+            item.left >= mouse.x - player.w / 2 &&
+            item.top <= mouse.y + player.w / 2 &&
+            item.top >= mouse.y - player.w / 2
+          ) {
+            $(this).remove();
+            player.hp--;
+          }
+        });
+
+        // 處理補給品
+        $('.supply').each(function () {
+          const item = {
+            left: parseInt($(this).css('left')),
+            top: parseInt($(this).css('top')),
+            w: parseInt($(this).width()),
+            h: parseInt($(this).height()),
+          };
+          if (item.w <= 0) {
+            $(this).remove();
+          }
+          if (
+            item.left <= mouse.x + player.w / 2 &&
+            item.left >= mouse.x - player.w / 2 &&
+            item.top <= mouse.y + player.h / 2 &&
+            item.top >= mouse.y - player.h / 2
+          ) {
+            if ($(this).hasClass(supplyType[0]) && player.hp < 5) {
+              player.hp++;
+            } else if ($(this).hasClass(supplyType[1]) && player.shootSpeed > 50) {
+              player.shootSpeed -= 50;
+              clearInterval(timer.shoot);
+              timer.shoot = null;
+              timer.shoot = setInterval(createPlayerBullet, player.shootSpeed);
+            } else if ($(this).hasClass(supplyType[2])) {
+              player.armsType = supplyType[2];
+              player.scatterNum += 500;
+            }
+            $(this).remove();
+          }
+        });
+        timer.stopID = requestAnimationFrame(gameHandler);
+      }
+    </script>
+  </body>
+</html>
