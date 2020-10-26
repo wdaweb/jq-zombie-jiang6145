@@ -243,7 +243,7 @@
       // variable for game
       const playerData = {
         hp: 5,
-        shootSpeed: 350, // 玩家射擊計時器間隔
+        shootSpeed: 200, // 玩家射擊計時器間隔
         armsType: 'normal',
         shotgunNum: 0,
         shootTimer: null,
@@ -385,7 +385,7 @@
 
       // 補給品處理 ---------------------------------------------------------------------------------------------
       function createSupply($enemy) {
-        if (Math.random() < 0.8) return;
+        if (Math.random() < 0.6) return;
         const initialX = parseInt($enemy.css('left'));
         const initialY = parseInt($enemy.css('top'));
         const supplyType = supplyTypes[random(0, 2)];
