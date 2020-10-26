@@ -243,7 +243,7 @@
       // variable for game
       const playerData = {
         hp: 5,
-        shootSpeed: 400, // 玩家射擊計時器間隔
+        shootSpeed: 350, // 玩家射擊計時器間隔
         armsType: 'normal',
         shotgunNum: 0,
         shootTimer: null,
@@ -426,9 +426,9 @@
             const offset = i < emitNum / 2 ? (i % (emitNum / 2)) * 100 : (i % (emitNum / 2)) * -100; // 散彈, 計算左右子彈的偏移距離
             $playerBulletWrap.append($playerBullet);
             $playerBullet
-              .css({ left: x, top: y })
+              .css({ left: initialX, top: initialY })
               .stop()
-              .animate({ left: x + offset, top: 0 }, velocity, 'linear', function () {
+              .animate({ left: initialX + offset, top: 0 }, velocity, 'linear', function () {
                 clearHandler($playerBullet);
               });
             playerData.shotgunNum--;
