@@ -8,6 +8,7 @@
       * {
         padding: 0;
         margin: 0;
+        box-sizing: border-box;
       }
       html,
       body {
@@ -61,6 +62,26 @@
         margin-right: 10px;
       }
 
+      #rule-wrap {
+        display: none;
+        position: absolute;
+        right: 30%;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 20px;
+        background-color: rgba(0, 0, 0, 0.8);
+        border-radius: 15px;
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      #rule-wrap p {
+        margin-top: 30px;
+        text-align: center;
+      }
+      #rule-wrap img {
+        vertical-align: middle;
+      }
       #game {
         display: none;
         width: 100%;
@@ -168,6 +189,13 @@
       <input class="btn btn-rule" type="button" value="遊戲規則" />
       <div class="text-highscore"></div>
     </div>
+    <div id="rule-wrap">
+      <p>1.生存時間越長分數越高, 擊中敵機會加分</p>
+      <p>2.擊敗敵機時有機率掉落補給品</p>
+      <p><img src="./images/supply-addShootSpeed.png" /> 增加攻擊速度</p>
+      <p><img src="./images/supply-tonic.png" /> 生命 + 1</p>
+      <p><img src="./images/supply-shotgun.png" /> 散彈武器</p>
+    </div>
     <div id="game">
       <div class="player"></div>
       <div class="player-status">
@@ -197,6 +225,7 @@
       const $btnsWrap = $('#btns-wrap');
       const $btnStart = $('.btn-start');
       const $btnRule = $('.btn-rule');
+      const $ruleWrap = $('#rule-wrap');
       const $textHighscore = $('.text-highscore');
 
       const $game = $('#game');
@@ -214,7 +243,7 @@
       // variable for game
       const playerData = {
         hp: 5,
-        shootSpeed: 50, // 玩家射擊計時器間隔
+        shootSpeed: 400, // 玩家射擊計時器間隔
         armsType: 'normal',
         shotgunNum: 0,
         shootTimer: null,
@@ -274,7 +303,7 @@
         if (enemyType === enemyTypes[0]) {
           // 敵人類型 1
           enemysData.push({
-            hp: 15, // 敵人血量
+            hp: 10, // 敵人血量
             shootTimer: null, // 敵人射擊計時器
             lifeCycle: 1000,
           });
@@ -588,7 +617,9 @@
       });
 
       // Button Rule
-      $btnRule.on('click', function () {});
+      $btnRule.on('click', function () {
+        $ruleWrap.stop().fadeToggle(1000);
+      });
 
       // 鼠標與玩家飛機操作
       $(window).on('mousemove', function (e) {
