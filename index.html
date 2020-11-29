@@ -243,7 +243,7 @@
       // variable for game
       const playerData = {
         hp: 5,
-        shootSpeed: 200, // 玩家射擊計時器間隔
+        shootSpeed: 300, // 玩家射擊計時器間隔
         armsType: 'normal',
         shotgunNum: 0,
         shootTimer: null,
@@ -303,7 +303,7 @@
         if (enemyType === enemyTypes[0]) {
           // 敵人類型 1
           enemysData.push({
-            hp: 10, // 敵人血量
+            hp: (playerData.score < 1000) ? 8 : Math.floor(playerData.score /100), // 敵人血量
             shootTimer: null, // 敵人射擊計時器
             lifeCycle: 1000,
           });
@@ -327,7 +327,7 @@
           const endX = randomNum > 0.5 ? createEnemyRange.right : createEnemyRange.left;
 
           enemysData.push({
-            hp: 5,
+            hp: (playerData.score < 1000) ? 3 : Math.floor(playerData.score /200),
             shootTimer: null,
           });
 
@@ -482,7 +482,7 @@
         // 重置數據
         isInGame = false;
         playerData.hp = 5;
-        playerData.shootSpeed = 400;
+        playerData.shootSpeed = 300;
         playerData.armsType = 'normal';
         playerData.shotgunNum = 0;
         playerData.score = 0;
@@ -573,8 +573,8 @@
             if ($this.hasClass(supplyTypes[0]) && playerData.hp < 5) {
               playerData.hp++;
               playerStatusHp();
-            } else if ($this.hasClass(supplyTypes[1]) && playerData.shootSpeed > 50) {
-              playerData.shootSpeed -= 50;
+            } else if ($this.hasClass(supplyTypes[1]) && playerData.shootSpeed > 120) {
+              playerData.shootSpeed -= 30;
               // 重啟玩家射擊的計時器
               if (!isShoot) return;
               clearInterval(playerData.shootTimer);
